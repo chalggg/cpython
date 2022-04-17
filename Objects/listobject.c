@@ -2956,13 +2956,7 @@ list_subscript(PyListObject* self, PyObject* item)
     }
     else if (PyList_Check(item))
     {
-        Py_ssize_t true_count = 0, i, j;
-        PyObject *result, *it;
-        PyObject **dest;
-        PyObject **item_items, **self_items;
 
-        item_items = ((PyListObject *)item)->ob_item;
-        self_items = self->ob_item;
         if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
         {
             PyErr_Format(PyExc_IndexError,
@@ -2970,6 +2964,14 @@ list_subscript(PyListObject* self, PyObject* item)
                          PyList_GET_SIZE(item), PyList_GET_SIZE(self));
             return NULL;
         }
+
+        Py_ssize_t true_count = 0;
+        Py_ssize_t i;
+
+        PyObject **item_items, **self_items;
+
+        item_items = ((PyListObject *)item)->ob_item;
+        self_items = self->ob_item;
 
         for (i = 0; i < PyList_GET_SIZE(item); i++)
         {
@@ -2986,28 +2988,33 @@ list_subscript(PyListObject* self, PyObject* item)
             }
         }
 
+        PyObject *result, *it;
+        PyObject **dest;
+        Py_ssize_t dest_index = 0;
+
         result = list_new_prealloc(true_count);
         if (!result)
             return NULL;
 
         dest = ((PyListObject *)result)->ob_item;
-        for (i = 0, j = 0; i < PyList_GET_SIZE(self); i++)
+
+        for (i = 0, dest_index = 0; i < PyList_GET_SIZE(self); i++)
         {
             if (item_items[i] == Py_True)
             {
                 it = self_items[i];
                 Py_INCREF(it);
-                dest[j] = it;
-                j++;
+                dest[dest_index] = it;
+                dest_index++;
             }
         }
         Py_SET_SIZE(result, true_count);
         return result;
     }
-    else {
-        // TODOs fix syntax warning about indices
+    else
+    {
         PyErr_Format(PyExc_TypeError,
-                     "list indices must be integers or slices or list of booleans xxd, not %.200s",
+                     "list indices must be integers or slices or list of booleans, not %.200s",
                      Py_TYPE(item)->tp_name);
         return NULL;
     }
@@ -3177,13 +3184,6 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
                          "when assigning with boolean list index, assigned value must be a list, not %.200s", Py_TYPE(value)->tp_name);
             return -1;
         }
-        Py_ssize_t true_count = 0;
-        Py_ssize_t i = 0, j = 0;
-        PyObject **self_items, **item_items, **value_items;
-
-        self_items = self->ob_item;
-        item_items = ((PyListObject *)item)->ob_item;
-        value_items = ((PyListObject *)value)->ob_item;
 
         if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
         {
@@ -3192,6 +3192,15 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
                          PyList_GET_SIZE(item), PyList_GET_SIZE(self));
             return -1;
         }
+
+        Py_ssize_t true_count = 0;
+        Py_ssize_t i = 0;
+        PyObject **self_items, **item_items, **value_items;
+
+        self_items = self->ob_item;
+        item_items = ((PyListObject *)item)->ob_item;
+        value_items = ((PyListObject *)value)->ob_item;
+
         for (i = 0; i < PyList_GET_SIZE(item); i++)
         {
             if (!PyBool_Check(item_items[i]))
@@ -3201,7 +3210,7 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
                              Py_TYPE(item_items[i])->tp_name);
                 return -1;
             }
-            else if (((PyListObject *)item)->ob_item[i] == Py_True)
+            else if (item_items[i] == Py_True)
             {
                 true_count++;
             }
@@ -3216,22 +3225,30 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
 
         PyObject **garbage;
         PyObject *ins;
+        Py_ssize_t value_index;
 
         garbage = (PyObject **)PyMem_Malloc(true_count * sizeof(PyObject *));
-        for (i = 0, j = 0; i < PyList_GET_SIZE(item); i++)
+        if (!garbage)
+        {
+            PyErr_NoMemory();
+            return -1;
+        }
+
+        for (i = 0, value_index = 0; i < PyList_GET_SIZE(item); i++)
         {
             if (item_items[i] == Py_True)
             {
-                garbage[j] = self_items[i];
-                ins = value_items[j];
+                garbage[value_index] = self_items[i];
+                ins = value_items[value_index];
                 Py_INCREF(ins);
                 self_items[i] = ins;
-                j++;
+                value_index++;
             }
         }
-        for (j = 0; j < true_count; j++)
+
+        for (i = 0; i < true_count; i++)
         {
-            Py_DECREF(garbage[j]);
+            Py_DECREF(garbage[i]);
         }
         PyMem_FREE(garbage);
 
