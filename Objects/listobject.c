@@ -2965,8 +2965,8 @@ list_subscript(PyListObject* self, PyObject* item)
         self_items = self->ob_item;
         if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
         {
-            PyErr_Format(PyExc_TypeError,
-                         "indices length (got %llu) must be equal to target list length (got %s)",
+            PyErr_Format(PyExc_IndexError,
+                         "indices length (got %lld) must be equal to target list length (got %lld)",
                          PyList_GET_SIZE(item), PyList_GET_SIZE(self));
             return NULL;
         }
@@ -3171,66 +3171,70 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
     else if (PyList_Check(item))
     {
         // assign list
-        if (PyList_Check(value))
+        if (!PyList_Check(value))
         {
-            Py_ssize_t true_count = 0;
-            Py_ssize_t i = 0, j = 0;
-            PyObject **self_items, **item_items, **value_items;
+            PyErr_Format(PyExc_TypeError,
+                         "when assigning with boolean list index, assigned value must be a list, not %.200s", Py_TYPE(value)->tp_name);
+            return -1;
+        }
+        Py_ssize_t true_count = 0;
+        Py_ssize_t i = 0, j = 0;
+        PyObject **self_items, **item_items, **value_items;
 
-            self_items = self->ob_item;
-            item_items = ((PyListObject *)item)->ob_item;
-            value_items = ((PyListObject *)value)->ob_item;
+        self_items = self->ob_item;
+        item_items = ((PyListObject *)item)->ob_item;
+        value_items = ((PyListObject *)value)->ob_item;
 
-            if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
+        if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
+        {
+            PyErr_Format(PyExc_IndexError,
+                         "indices length (got %ld) must be equal to target list length (got %ld)",
+                         PyList_GET_SIZE(item), PyList_GET_SIZE(self));
+            return -1;
+        }
+        for (i = 0; i < PyList_GET_SIZE(item); i++)
+        {
+            if (!PyBool_Check(item_items[i]))
             {
                 PyErr_Format(PyExc_TypeError,
-                             "indices length (got %ld) must be equal to target list length (got %ld)",
-                             PyList_GET_SIZE(item), PyList_GET_SIZE(self));
+                             "when assigning with list all indices must be boolean, element at index %llu is %.200s", i,
+                             Py_TYPE(item_items[i])->tp_name);
                 return -1;
             }
-            for (i = 0; i < PyList_GET_SIZE(item); i++)
+            else if (((PyListObject *)item)->ob_item[i] == Py_True)
             {
-                if (!PyBool_Check(item_items[i]))
-                {
-                    PyErr_Format(PyExc_TypeError,
-                                 "when assigning with list all indices must be boolean, element at index %llu is %.200s", i,
-                                 Py_TYPE(item_items[i])->tp_name);
-                    return -1;
-                }
-                else if (((PyListObject *)item)->ob_item[i] == Py_True)
-                {
-                    true_count++;
-                }
+                true_count++;
             }
-            if (true_count != PyList_GET_SIZE(value))
-            {
-                PyErr_Format(PyExc_TypeError,
-                             "number of boolean indices with True value must be equal to length of assigned list, got %ld True indices and %ld assigned values",
-                             true_count, PyList_GET_SIZE(value));
-                return -1;
-            }
+        }
+        if (true_count != PyList_GET_SIZE(value))
+        {
+            PyErr_Format(PyExc_IndexError,
+                         "number of boolean indices with True value must be equal to length of assigned list, got %ld True indices and %ld assigned values",
+                         true_count, PyList_GET_SIZE(value));
+            return -1;
+        }
 
-            PyObject **garbage;
-            PyObject *ins;
+        PyObject **garbage;
+        PyObject *ins;
 
-            garbage = (PyObject **)PyMem_Malloc(true_count * sizeof(PyObject *));
-            for (i = 0, j = 0; i < PyList_GET_SIZE(item); i++)
+        garbage = (PyObject **)PyMem_Malloc(true_count * sizeof(PyObject *));
+        for (i = 0, j = 0; i < PyList_GET_SIZE(item); i++)
+        {
+            if (item_items[i] == Py_True)
             {
-                if (item_items[i] == Py_True)
-                {
-                    garbage[j] = self_items[i];
-                    ins = value_items[j];
-                    Py_INCREF(ins);
-                    self_items[i] = ins;
-                    j++;
-                }
+                garbage[j] = self_items[i];
+                ins = value_items[j];
+                Py_INCREF(ins);
+                self_items[i] = ins;
+                j++;
             }
-            for (j = 0; j < true_count; j++)
-            {
-                Py_DECREF(garbage[j]);
-            }
-            PyMem_FREE(garbage);
-        } // TODO else
+        }
+        for (j = 0; j < true_count; j++)
+        {
+            Py_DECREF(garbage[j]);
+        }
+        PyMem_FREE(garbage);
+
         return 0;
     }
     else

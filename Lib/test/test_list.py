@@ -256,6 +256,39 @@ class ListTest(list_tests.CommonTest):
         lst = [X(), X()]
         X() in lst
 
+    def test_indexing_with_boolean_list_ok(self):
+        a=[1,2,3,4]
+        self.assertEqual(a[[True,False,True,False]],[1,3] )
+        a[[True,False,True,False]]=[-1,-2]
+        self.assertEqual(a,[-1,2,-2,4] )
+
+
+    def test_indexing_with_boolean_list_wrong_indices_length(self):
+        a=[1,2,3,4]
+        with self.assertRaises(IndexError):
+            a[[True, True]]
+        with self.assertRaises(IndexError):
+            a[[True, True, True,True, True]]
+        with self.assertRaises(IndexError):
+            a[[True, True]]=[1,2]
+        with self.assertRaises(IndexError):
+            a[[True, True, True,True, True]]=[1,2,3,4,5]
+
+    def test_indexing_with_boolean_list_assigned_value_not_a_list(self):
+        a=[1,2,3,4]
+        with self.assertRaises(TypeError):
+            a[[True, True,True,True]]="not a list"
+
+    def test_indexing_with_boolean_list_some_indices_not_boolean(self):
+        a=[1,2,3,4]
+        with self.assertRaises(TypeError):
+            a[[1, "str",True,0]]=[1,2,3]
+    
+    def test_indexing_with_boolean_list_value_vs_indices_length_mismatch(self):
+        a=[1,2,3,4]
+        with self.assertRaises(IndexError):
+            a[[True, False,True,False]]=[1]
+    
 
 if __name__ == "__main__":
     unittest.main()
