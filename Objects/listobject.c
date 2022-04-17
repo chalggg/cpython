@@ -2954,13 +2954,11 @@ list_subscript(PyListObject* self, PyObject* item)
             return result;
         }
     }
-    else if (PyList_Check(item))
-    {
-
-        if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
-        {
+    else if (PyList_Check(item)) {
+        if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self)) {
             PyErr_Format(PyExc_IndexError,
-                         "indices length (got %lld) must be equal to target list length (got %lld)",
+                         "indices length (got %lld) must be equal to target "
+                         "list length (got %lld)",
                          PyList_GET_SIZE(item), PyList_GET_SIZE(self));
             return NULL;
         }
@@ -2973,17 +2971,15 @@ list_subscript(PyListObject* self, PyObject* item)
         item_items = ((PyListObject *)item)->ob_item;
         self_items = self->ob_item;
 
-        for (i = 0; i < PyList_GET_SIZE(item); i++)
-        {
-            if (!PyBool_Check(item_items[i]))
-            {
+        for (i = 0; i < PyList_GET_SIZE(item); i++) {
+            if (!PyBool_Check(item_items[i])) {
                 PyErr_Format(PyExc_TypeError,
-                             "when indexing with list all indices must be boolean, element at index %llu is %.200s", i,
-                             Py_TYPE(item_items[i])->tp_name);
+                             "when indexing with list all indices must be"
+                             " boolean, element at index %llu is %.200s",
+                             i, Py_TYPE(item_items[i])->tp_name);
                 return NULL;
             }
-            else if (item_items[i] == Py_True)
-            {
+            else if (item_items[i] == Py_True) {
                 true_count++;
             }
         }
@@ -2998,10 +2994,8 @@ list_subscript(PyListObject* self, PyObject* item)
 
         dest = ((PyListObject *)result)->ob_item;
 
-        for (i = 0, dest_index = 0; i < PyList_GET_SIZE(self); i++)
-        {
-            if (item_items[i] == Py_True)
-            {
+        for (i = 0, dest_index = 0; i < PyList_GET_SIZE(self); i++) {
+            if (item_items[i] == Py_True) {
                 it = self_items[i];
                 Py_INCREF(it);
                 dest[dest_index] = it;
@@ -3011,10 +3005,10 @@ list_subscript(PyListObject* self, PyObject* item)
         Py_SET_SIZE(result, true_count);
         return result;
     }
-    else
-    {
+    else {
         PyErr_Format(PyExc_TypeError,
-                     "list indices must be integers or slices or list of booleans, not %.200s",
+                     "list indices must be integers or slices or list of "
+                     "booleans, not %.200s",
                      Py_TYPE(item)->tp_name);
         return NULL;
     }
@@ -3175,20 +3169,20 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
             return 0;
         }
     }
-    else if (PyList_Check(item))
-    {
+    else if (PyList_Check(item)) {
         // assign list
-        if (!PyList_Check(value))
-        {
+        if (!PyList_Check(value)) {
             PyErr_Format(PyExc_TypeError,
-                         "when assigning with boolean list index, assigned value must be a list, not %.200s", Py_TYPE(value)->tp_name);
+                         "when assigning with boolean list index,"
+                         "assigned value must be a list, not %.200s",
+                         Py_TYPE(value)->tp_name);
             return -1;
         }
 
-        if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self))
-        {
+        if (PyList_GET_SIZE(item) != PyList_GET_SIZE(self)) {
             PyErr_Format(PyExc_IndexError,
-                         "indices length (got %ld) must be equal to target list length (got %ld)",
+                         "indices length (got %ld) must be equal to target"
+                         " list length (got %ld)",
                          PyList_GET_SIZE(item), PyList_GET_SIZE(self));
             return -1;
         }
@@ -3201,24 +3195,24 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
         item_items = ((PyListObject *)item)->ob_item;
         value_items = ((PyListObject *)value)->ob_item;
 
-        for (i = 0; i < PyList_GET_SIZE(item); i++)
-        {
-            if (!PyBool_Check(item_items[i]))
-            {
-                PyErr_Format(PyExc_TypeError,
-                             "when assigning with list all indices must be boolean, element at index %llu is %.200s", i,
-                             Py_TYPE(item_items[i])->tp_name);
+        for (i = 0; i < PyList_GET_SIZE(item); i++) {
+            if (!PyBool_Check(item_items[i])) {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "when assigning with list all indices"
+                    "must be boolean, element at index %llu is %.200s",
+                    i, Py_TYPE(item_items[i])->tp_name);
                 return -1;
             }
-            else if (item_items[i] == Py_True)
-            {
+            else if (item_items[i] == Py_True) {
                 true_count++;
             }
         }
-        if (true_count != PyList_GET_SIZE(value))
-        {
+        if (true_count != PyList_GET_SIZE(value)) {
             PyErr_Format(PyExc_IndexError,
-                         "number of boolean indices with True value must be equal to length of assigned list, got %ld True indices and %ld assigned values",
+                         "number of boolean indices with True value "
+                         "must be equal to length of assigned list,"
+                         " got %ld True indices and %ld assigned values",
                          true_count, PyList_GET_SIZE(value));
             return -1;
         }
@@ -3228,16 +3222,13 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
         Py_ssize_t value_index;
 
         garbage = (PyObject **)PyMem_Malloc(true_count * sizeof(PyObject *));
-        if (!garbage)
-        {
+        if (!garbage) {
             PyErr_NoMemory();
             return -1;
         }
 
-        for (i = 0, value_index = 0; i < PyList_GET_SIZE(item); i++)
-        {
-            if (item_items[i] == Py_True)
-            {
+        for (i = 0, value_index = 0; i < PyList_GET_SIZE(item); i++) {
+            if (item_items[i] == Py_True) {
                 garbage[value_index] = self_items[i];
                 ins = value_items[value_index];
                 Py_INCREF(ins);
@@ -3246,18 +3237,17 @@ list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
             }
         }
 
-        for (i = 0; i < true_count; i++)
-        {
+        for (i = 0; i < true_count; i++) {
             Py_DECREF(garbage[i]);
         }
         PyMem_FREE(garbage);
 
         return 0;
     }
-    else
-    {
+    else {
         PyErr_Format(PyExc_TypeError,
-                     "list indices must be integers or slices or list of booleans, not %.200s",
+                     "list indices must be integers or slices "
+                     "or list of booleans, not %.200s",
                      Py_TYPE(item)->tp_name);
         return -1;
     }
